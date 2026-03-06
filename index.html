@@ -396,6 +396,8 @@
 
       async function populateFilter() {
         const select = document.getElementById("lb-item-filter");
+        // Dropdown leeren außer dem ersten "Alle Items" Eintrag
+        while (select.options.length > 1) select.remove(1);
         const { data } = await db.from("scores").select("item, item_id");
         if (!data) return;
         const seen = new Set();
@@ -429,6 +431,9 @@
         await db
           .from("scores")
           .insert({ name, time, ms, item, item_id: itemId });
+        // Filter zurücksetzen damit der neue Eintrag sichtbar ist
+        activeItemFilter = "";
+        document.getElementById("lb-item-filter").value = "";
         loadLeaderboard();
         populateFilter();
       };
