@@ -170,7 +170,42 @@
         font-size: 12px;
       }
 
-      /* Name input modal */
+      .lb-filter {
+        width: 100%;
+        margin-bottom: 14px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .lb-filter select {
+        font-family: "Minecraftia", sans-serif;
+        font-size: 11px;
+        padding: 7px 10px;
+        border-radius: 8px;
+        border: 2px solid rgba(255, 255, 255, 0.3) !important;
+        background: rgba(0, 0, 0, 0.4);
+        color: #fff;
+        cursor: pointer;
+        flex: 1;
+      }
+      .lb-filter select option {
+        background: #222;
+      }
+      .lb-filter-reset {
+        font-family: "Minecraftia", sans-serif;
+        font-size: 11px;
+        padding: 7px 12px !important;
+        padding-bottom: 3px !important;
+        background: rgba(255, 255, 255, 0.15) !important;
+        border-radius: 8px !important;
+        color: #fff;
+        cursor: pointer;
+        white-space: nowrap;
+        box-shadow: none !important;
+      }
+      .lb-filter-reset:hover {
+        background: rgba(255, 255, 255, 0.25) !important;
+      }
       #name-modal {
         display: none;
         position: fixed;
@@ -259,6 +294,12 @@
       <!-- Leaderboard -->
       <div class="leaderboard-card">
         <h2>🏆 Leaderboard</h2>
+        <div class="lb-filter">
+          <select id="lb-item-filter">
+            <option value="">Alle Items</option>
+          </select>
+          <button class="lb-filter-reset" id="lb-reset-filter">✕ Reset</button>
+        </div>
         <div id="leaderboard-list">
           <div class="lb-empty">Wird geladen...</div>
         </div>
@@ -320,13 +361,19 @@
         );
       }
 
+      let activeItemFilter = "";
+
       async function loadLeaderboard() {
         const list = document.getElementById("leaderboard-list");
-        const { data, error } = await db
+
+        let query = db
           .from("scores")
           .select("*")
-          .order("ms", { ascending: true })
-          .limit(10);
+          .order("ms", { ascending: true });
+        if (activeItemFilter) query = query.eq("item_id", activeItemFilter);
+        query = query.limit(10);
+
+        const { data, error } = await query;
 
         if (error || !data || data.length === 0) {
           list.innerHTML =
@@ -347,14 +394,47 @@
           .join("");
       }
 
+      async function populateFilter() {
+        const select = document.getElementById("lb-item-filter");
+        const { data } = await db.from("scores").select("item, item_id");
+        if (!data) return;
+        const seen = new Set();
+        data.forEach((e) => {
+          if (!seen.has(e.item_id)) {
+            seen.add(e.item_id);
+            const opt = document.createElement("option");
+            opt.value = e.item_id;
+            opt.textContent = e.item;
+            select.appendChild(opt);
+          }
+        });
+      }
+
+      document
+        .getElementById("lb-item-filter")
+        .addEventListener("change", (e) => {
+          activeItemFilter = e.target.value;
+          loadLeaderboard();
+        });
+
+      document
+        .getElementById("lb-reset-filter")
+        .addEventListener("click", () => {
+          activeItemFilter = "";
+          document.getElementById("lb-item-filter").value = "";
+          loadLeaderboard();
+        });
+
       window.saveScoreToSupabase = async (name, time, ms, item, itemId) => {
         await db
           .from("scores")
           .insert({ name, time, ms, item, item_id: itemId });
         loadLeaderboard();
+        populateFilter();
       };
 
       loadLeaderboard();
+      populateFilter();
     </script>
 
     <script>
