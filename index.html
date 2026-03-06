@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Random Minecraft Item Selector</title>
+    <style>
+      @font-face {
+        font-family: "Minecraftia";
+        src: url("fonts/Minecraftia-Regular.ttf") format("truetype");
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Minecraftia", sans-serif;
+        outline: none;
+        border: none;
+      }
+      #background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1;
+        display: flex;
+        justify-content: center;
+        align-items: start;
+      }
+      main {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: row;
+        gap: 32px;
+        min-height: 100vh;
+        width: 100%;
+        padding: 32px;
+        flex-wrap: wrap;
+      }
+      .left-column {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+      }
+      .glass-card {
+        background: rgba(126, 126, 126, 0.4);
+        backdrop-filter: blur(5px);
+        padding: 48px;
+        border-radius: 24px;
+        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(204, 204, 204, 0.7);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .glass-card button {
+        text-align: center;
+        padding: 16px;
+        padding-bottom: 8px;
+        background: #0da132;
+        border-radius: 12px;
+        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: 0.3s ease-in-out;
+      }
+      .glass-card button:hover {
+        transform: translateY(-2px);
+        background: #179637;
+      }
+      .glass-card button:active {
+        transform: translateY(2px) scale(0.97);
+      }
+      body.running {
+        animation: gradientMove 6s infinite linear;
+        background: linear-gradient(270deg, #8f4806, #7a0862, #178996);
+        background-size: 600% 600%;
+      }
+      body.running #background {
+        display: none;
+      }
+      #item-icon {
+        image-rendering: pixelated;
+        margin: 20px 0;
+        transition: transform 0.2s;
+      }
+      .spinning {
+        animation: spin 0.5s linear infinite;
+      }
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes gradientMove {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      /* Leaderboard */
+      .leaderboard-card {
+        background: rgba(126, 126, 126, 0.4);
+        backdrop-filter: blur(5px);
+        padding: 32px 48px;
+        border-radius: 24px;
+        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(204, 204, 204, 0.7);
+        width: 420px;
+        margin-top: 24px;
+      }
+      .leaderboard-card h2 {
+        color: #fff;
+        text-shadow: 2px 2px 0 #000;
+        font-size: 18px;
+        margin-bottom: 16px;
+        text-align: center;
+        letter-spacing: 1px;
+      }
+      .leaderboard-entry {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        color: #fff;
+        text-shadow: 1px 1px 0 #000;
+        font-size: 13px;
+      }
+      .leaderboard-entry:last-child {
+        border-bottom: none;
+      }
+      .lb-rank {
+        width: 24px;
+        text-align: center;
+        font-size: 15px;
+      }
+      .lb-icon {
+        image-rendering: pixelated;
+        width: 28px;
+        height: 28px;
+      }
+      .lb-name {
+        flex: 1;
+      }
+      .lb-item {
+        color: #adf;
+        font-size: 11px;
+      }
+      .lb-time {
+        color: #afa;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      .lb-empty {
+        color: rgba(255, 255, 255, 0.5);
+        text-align: center;
+        padding: 16px 0;
+        font-size: 12px;
+      }
+
+      /* Name input modal */
+      #name-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+      }
+      #name-modal.visible {
+        display: flex;
+      }
+      .modal-box {
+        background: rgba(40, 40, 40, 0.95);
+        border: 2px solid rgba(204, 204, 204, 0.7);
+        border-radius: 20px;
+        padding: 36px 40px;
+        text-align: center;
+        color: #fff;
+        text-shadow: 1px 1px 0 #000;
+      }
+      .modal-box h3 {
+        font-size: 16px;
+        margin-bottom: 16px;
+      }
+      .modal-box input {
+        font-family: "Minecraftia", sans-serif;
+        font-size: 14px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 2px solid #0da132 !important;
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        outline: none;
+        width: 220px;
+        margin-bottom: 16px;
+      }
+      .modal-box button {
+        text-align: center;
+        padding: 12px 24px;
+        padding-bottom: 6px;
+        background: #0da132;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        color: #fff;
+        font-family: "Minecraftia", sans-serif;
+        font-size: 13px;
+        transition: 0.2s;
+      }
+      .modal-box button:hover {
+        background: #179637;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="background">
+      <img src="assets/mc-background.png" alt="Hintergrund" />
+    </div>
+    <main>
+      <div class="left-column">
+        <div class="glass-card">
+          <div class="random-item">
+            <span class="item-name">Item-Name</span>
+          </div>
+          <img id="item-icon" width="120" />
+          <div class="roll-item">
+            <button class="roll-item-btn" disabled>Loading...</button>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="timer">
+            <span id="timer-display">00:00.00</span>
+          </div>
+
+          <div class="timer-controls">
+            <button id="start-btn">Starten</button>
+            <button id="stop-btn">Stop</button>
+            <button id="reset-btn">Reset</button>
+          </div>
+        </div>
+      </div>
+      <!-- end left-column -->
+
+      <!-- Leaderboard -->
+      <div class="leaderboard-card">
+        <h2>🏆 Leaderboard</h2>
+        <div id="leaderboard-list">
+          <div class="lb-empty">Wird geladen...</div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Name input modal -->
+    <div id="name-modal">
+      <div class="modal-box">
+        <h3>🏆 Zeit eintragen!</h3>
+        <div
+          style="color: #afa; font-size: 13px; margin-bottom: 8px"
+          id="modal-time"
+        ></div>
+        <div
+          style="color: #adf; font-size: 11px; margin-bottom: 16px"
+          id="modal-item"
+        ></div>
+        <input
+          type="text"
+          id="player-name"
+          placeholder="Dein Name..."
+          maxlength="20"
+        /><br />
+        <button id="submit-score-btn">Eintragen</button>
+      </div>
+    </div>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      // ─── 🔧 DEINE SUPABASE CONFIG HIER EINFÜGEN ───────────────────
+      const SUPABASE_URL = "https://bzjmcyrkudvouuunkexx.supabase.co";
+      const SUPABASE_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6am1jeXJrdWR2b3V1dW5rZXh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDEzNzQsImV4cCI6MjA4ODM3NzM3NH0.aLurE893wi-jieMfqr-NFV6lCLcJ4PM3B-8Bsi4IPXE";
+      // ──────────────────────────────────────────────────────────────
+
+      const { createClient } = supabase;
+      const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      function getItemIcon(itemId) {
+        return `https://minecraft.wiki/images/Invicon_${itemId
+          .split("_")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join("_")}.png`;
+      }
+
+      function escapeHtml(str) {
+        return str.replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      }
+
+      async function loadLeaderboard() {
+        const list = document.getElementById("leaderboard-list");
+        const { data, error } = await db
+          .from("scores")
+          .select("*")
+          .order("ms", { ascending: true })
+          .limit(10);
+
+        if (error || !data || data.length === 0) {
+          list.innerHTML =
+            '<div class="lb-empty">Noch keine Einträge. Sei der Erste!</div>';
+          return;
+        }
+        const medals = ["🥇", "🥈", "🥉"];
+        list.innerHTML = data
+          .map(
+            (e, i) => `
+          <div class="leaderboard-entry">
+            <span class="lb-rank">${medals[i] || i + 1 + "."}</span>
+            <img class="lb-icon" src="${getItemIcon(e.item_id)}" onerror="this.style.display='none'" />
+            <span class="lb-name">${escapeHtml(e.name)}<br><span class="lb-item">${escapeHtml(e.item)}</span></span>
+            <span class="lb-time">${e.time}</span>
+          </div>`,
+          )
+          .join("");
+      }
+
+      window.saveScoreToSupabase = async (name, time, ms, item, itemId) => {
+        await db
+          .from("scores")
+          .insert({ name, time, ms, item, item_id: itemId });
+        loadLeaderboard();
+      };
+
+      loadLeaderboard();
+    </script>
+
+    <script>
+      // Alle Items direkt als Array
+      const items = [
+        "acacia_boat",
+        "acacia_button",
+        "acacia_door",
+        "acacia_fence",
+        "acacia_fence_gate",
+        "acacia_leaves",
+        "acacia_log",
+        "acacia_planks",
+        "acacia_sapling",
+        "acacia_sign",
+        "amethyst_shard",
+        "ancient_debris",
+        "apple",
+        "arrow",
+        "baked_potato",
+        "bamboo",
+        "barrel",
+        "basalt",
+        "beacon",
+        "bee_nest",
+        "beef",
+        "beetroot",
+        "beetroot_seeds",
+        "bell",
+        "birch_boat",
+        "birch_button",
+        "birch_door",
+        "birch_fence",
+        "birch_fence_gate",
+        "birch_log",
+        "birch_planks",
+        "birch_sapling",
+        "black_dye",
+        "blaze_powder",
+        "blaze_rod",
+        "blue_dye",
+        "bone",
+        "bone_meal",
+        "book",
+        "bookshelf",
+        "bow",
+        "bread",
+        "brick",
+        "brown_dye",
+        "bucket",
+        "cactus",
+        "cake",
+        "campfire",
+        "carrot",
+        "carrot_on_a_stick",
+        "cauldron",
+        "chain",
+        "charcoal",
+        "chest",
+        "chicken",
+        "chorus_fruit",
+        "clay_ball",
+        "clock",
+        "coal",
+        "coal_block",
+        "cobblestone",
+        "cobweb",
+        "cocoa_beans",
+        "cod",
+        "compass",
+        "cooked_beef",
+        "cooked_chicken",
+        "cooked_cod",
+        "cooked_mutton",
+        "cooked_porkchop",
+        "cooked_rabbit",
+        "cookie",
+        "copper_ingot",
+        "crafting_table",
+        "creeper_head",
+        "crossbow",
+        "diamond",
+        "diamond_axe",
+        "diamond_boots",
+        "diamond_chestplate",
+        "diamond_helmet",
+        "diamond_hoe",
+        "diamond_horse_armor",
+        "diamond_leggings",
+        "diamond_pickaxe",
+        "diamond_shovel",
+        "diamond_sword",
+        "dirt",
+        "dragon_breath",
+        "dried_kelp",
+        "egg",
+        "elytra",
+        "emerald",
+        "enchanted_book",
+        "end_crystal",
+        "ender_chest",
+        "ender_eye",
+        "ender_pearl",
+        "experience_bottle",
+        "feather",
+        "fermented_spider_eye",
+        "fishing_rod",
+        "flint",
+        "flint_and_steel",
+        "flower_pot",
+        "furnace",
+        "ghast_tear",
+        "glass",
+        "glass_bottle",
+        "glowstone_dust",
+        "gold_ingot",
+        "gold_nugget",
+        "golden_apple",
+        "golden_carrot",
+        "golden_sword",
+        "gunpowder",
+        "honey_bottle",
+        "honeycomb",
+        "hopper",
+        "ice",
+        "ink_sac",
+        "iron_axe",
+        "iron_boots",
+        "iron_chestplate",
+        "iron_helmet",
+        "iron_hoe",
+        "iron_ingot",
+        "iron_leggings",
+        "iron_nugget",
+        "iron_pickaxe",
+        "iron_shovel",
+        "iron_sword",
+        "ladder",
+        "lantern",
+        "lapis_lazuli",
+        "lava_bucket",
+        "lead",
+        "leather",
+        "lectern",
+        "lever",
+        "light_blue_dye",
+        "light_gray_dye",
+        "lime_dye",
+        "magma_cream",
+        "map",
+        "melon",
+        "milk_bucket",
+        "minecart",
+        "moss_block",
+        "mushroom_stew",
+        "music_disc",
+        "name_tag",
+        "nether_brick",
+        "nether_star",
+        "nether_wart",
+        "netherite_ingot",
+        "netherite_scrap",
+        "oak_boat",
+        "oak_door",
+        "oak_log",
+        "oak_planks",
+        "oak_sapling",
+        "obsidian",
+        "paper",
+        "phantom_membrane",
+        "pickaxe",
+        "poisonous_potato",
+        "porkchop",
+        "potato",
+        "potion",
+        "prismarine_shard",
+        "pumpkin",
+        "rabbit_hide",
+        "rabbit_stew",
+        "raw_copper",
+        "raw_gold",
+        "raw_iron",
+        "red_dye",
+        "redstone",
+        "redstone_torch",
+        "rotten_flesh",
+        "saddle",
+        "salmon",
+        "sand",
+        "scute",
+        "sea_lantern",
+        "seeds",
+        "shears",
+        "shield",
+        "shulker_shell",
+        "slime_ball",
+        "snowball",
+        "soul_sand",
+        "spider_eye",
+        "sponge",
+        "stick",
+        "stone",
+        "stone_axe",
+        "stone_pickaxe",
+        "stone_shovel",
+        "stone_sword",
+        "string",
+        "sugar",
+        "sugar_cane",
+        "suspicious_stew",
+        "sweet_berries",
+        "target_block",
+        "tnt",
+        "torch",
+        "totem_of_undying",
+        "trident",
+        "turtle_egg",
+        "warped_fungus",
+        "warped_stem",
+        "water_bucket",
+        "wheat",
+        "wheat_seeds",
+        "white_dye",
+        "wooden_axe",
+        "wooden_hoe",
+        "wooden_pickaxe",
+        "wooden_shovel",
+        "wooden_sword",
+        "yellow_dye",
+      ];
+
+      const itemIcon = document.getElementById("item-icon");
+      const itemName = document.querySelector(".item-name");
+      const rollButton = document.querySelector(".roll-item-btn");
+
+      // Enable button immediately since items are already loaded
+      rollButton.disabled = false;
+      rollButton.textContent = "Roll Item";
+
+      const timerDisplay = document.getElementById("timer-display");
+      const startBtn = document.getElementById("start-btn");
+      const stopBtn = document.getElementById("stop-btn");
+      const resetBtn = document.getElementById("reset-btn");
+
+      let startTime;
+      let timerInterval;
+
+      let itemRolled = false;
+      let timerRunning = false;
+
+      startBtn.style.display = "none";
+
+      function formatName(name) {
+        return name
+          .replace(/\b\w/g, (c) => c.toUpperCase())
+          .replaceAll("_", " ");
+      }
+
+      function rollItem() {
+        const randomIndex = Math.floor(Math.random() * items.length);
+        const id = items[randomIndex];
+
+        itemName.textContent = formatName(id);
+
+        // Use minecraft.wiki for item sprites (CORS-friendly)
+        const wikiUrl = `https://minecraft.wiki/images/Invicon_${id
+          .split("_")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join("_")}.png`;
+        const fallbackUrl = `https://minecraft.wiki/images/Invicon_Barrier.png`;
+
+        itemIcon.src = wikiUrl;
+        itemIcon.onerror = () => {
+          itemIcon.src = fallbackUrl;
+          itemIcon.onerror = null;
+        };
+
+        itemRolled = true;
+        startBtn.style.display = "block";
+      }
+
+      function startTimer() {
+        clearInterval(timerInterval);
+        startTime = Date.now();
+        timerInterval = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const minutes = Math.floor(elapsed / 60000);
+          const seconds = Math.floor((elapsed % 60000) / 1000);
+          const ms = Math.floor((elapsed % 1000) / 10);
+          timerDisplay.textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(ms).padStart(2, "0")}`;
+        }, 10);
+      }
+
+      function stopTimer() {
+        clearInterval(timerInterval);
+      }
+
+      function resetTimer() {
+        clearInterval(timerInterval);
+        timerDisplay.textContent = "00:00.00";
+        itemRolled = false;
+        timerRunning = false;
+        startBtn.style.display = "none";
+        document.body.classList.remove("running");
+        rollButton.disabled = false;
+        document.querySelector(".roll-item").style.display = "block";
+      }
+
+      function enterRunMode() {
+        timerRunning = true;
+        document.querySelector(".roll-item").style.display = "none";
+        startBtn.style.display = "none";
+        document.body.classList.add("running");
+        rollButton.disabled = true;
+      }
+
+      rollButton.addEventListener("click", rollItem);
+      startBtn.addEventListener("click", () => {
+        if (!itemRolled || timerRunning) return;
+        startTimer();
+        enterRunMode();
+      });
+      stopBtn.addEventListener("click", () => {
+        if (!timerRunning) return;
+        stopTimer();
+        timerRunning = false;
+        document.body.classList.remove("running");
+        const elapsed = Date.now() - startTime;
+        finalTimeMs = elapsed;
+        finalTime = timerDisplay.textContent;
+        currentItem = {
+          id: items[lastRolledIndex],
+          name: itemName.textContent,
+        };
+        showModal();
+      });
+      resetBtn.addEventListener("click", resetTimer);
+
+      // ── Leaderboard ──────────────────────────────────────────────
+      let currentItem = null;
+      let finalTime = null;
+      let finalTimeMs = null;
+      let lastRolledIndex = 0;
+
+      // Patch rollItem to track last rolled index
+      rollButton.removeEventListener("click", rollItem);
+      rollButton.addEventListener("click", () => {
+        const randomIndex = Math.floor(Math.random() * items.length);
+        lastRolledIndex = randomIndex;
+        const id = items[randomIndex];
+        itemName.textContent = formatName(id);
+        const wikiUrl = `https://minecraft.wiki/images/Invicon_${id
+          .split("_")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join("_")}.png`;
+        itemIcon.src = wikiUrl;
+        itemIcon.onerror = () => {
+          itemIcon.src = `https://minecraft.wiki/images/Invicon_Barrier.png`;
+          itemIcon.onerror = null;
+        };
+        itemRolled = true;
+        startBtn.style.display = "block";
+      });
+
+      function showModal() {
+        document.getElementById("modal-time").textContent =
+          "Zeit: " + finalTime;
+        document.getElementById("modal-item").textContent =
+          "Item: " + (currentItem?.name || "");
+        document.getElementById("player-name").value = "";
+        document.getElementById("name-modal").classList.add("visible");
+        document.getElementById("player-name").focus();
+      }
+
+      document
+        .getElementById("submit-score-btn")
+        .addEventListener("click", async () => {
+          const name = document.getElementById("player-name").value.trim();
+          if (!name) return;
+          document.getElementById("name-modal").classList.remove("visible");
+          if (window.saveScoreToSupabase) {
+            await window.saveScoreToSupabase(
+              name,
+              finalTime,
+              finalTimeMs,
+              currentItem?.name || "?",
+              items[lastRolledIndex],
+            );
+          }
+        });
+
+      document
+        .getElementById("player-name")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter")
+            document.getElementById("submit-score-btn").click();
+        });
+    </script>
+  </body>
+</html>
