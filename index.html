@@ -259,6 +259,21 @@
       .modal-box button:hover {
         background: #179637;
       }
+
+      footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: 100px;
+        background: rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: large;
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+      }
     </style>
   </head>
   <body>
@@ -327,6 +342,10 @@
         <button id="submit-score-btn">Eintragen</button>
       </div>
     </div>
+
+    <footer>
+      <a href="datenschutzerklaerung.html">Datenschutzerklärung</a>
+    </footer>
 
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
